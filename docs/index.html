@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dustpan — sweep menu bar icons away</title>
+<meta name="description" content="Dustpan is a free, open-source Mac menu bar utility that sweeps the icons you don't need out of sight, and brings them back with a click.">
+<meta property="og:title" content="Dustpan for macOS">
+<meta property="og:description" content="Sweeps menu bar icons out of sight. Free and open source.">
+<meta property="og:image" content="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF7EF;
+    --ink: #2A2418;
+    --ink-soft: #6E6253;
+    --mustard: #E0B13A;
+    --mustard-deep: #B48818;
+    --bar: #2B2B2E;
+    --bar-text: #F2F2F2;
+    --max: 880px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #1A1711;
+      --ink: #F4EEE2;
+      --ink-soft: #B5A68E;
+      --bar: #3A3A3F;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Outfit", system-ui, sans-serif; font-size: 18px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  a { color: var(--mustard-deep); }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 3px; }
+  kbd { font: 600 0.85em/1 "Outfit", system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: rgba(0,0,0,.06); border: 1px solid rgba(0,0,0,.12); white-space: nowrap; }
+
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+  header { padding: 28px 0 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; text-decoration: none; color: var(--ink); font-size: 20px; }
+  .brand img { width: 36px; height: 36px; border-radius: 9px; }
+  header nav a { color: var(--ink-soft); text-decoration: none; margin-left: 20px; font-weight: 500; }
+  header nav a:hover { color: var(--ink); }
+
+  .hero { padding: 64px 0 40px; text-align: center; }
+  .hero h1 { font-size: clamp(32px, 5.5vw, 52px); font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; margin: 0 auto 14px; max-width: 18ch; }
+  .hero p.lead { color: var(--ink-soft); max-width: 48ch; margin: 0 auto 36px; }
+
+  /* Mock menu bar */
+  .bar { position: relative; margin: 0 auto; max-width: 720px; height: 44px; background: var(--bar); color: var(--bar-text); border-radius: 12px; display: flex; align-items: center; padding: 0 14px; font-size: 14px; font-weight: 500; overflow: hidden; box-shadow: 0 16px 40px rgba(42,36,24,.18); }
+  .bar .left { display: flex; align-items: center; gap: 18px; }
+  .bar .apple { font-size: 11px; opacity: .8; }
+  .bar .right { margin-left: auto; display: flex; align-items: center; gap: 0; }
+  .hidden-zone { display: flex; align-items: center; gap: 0; overflow: hidden; transition: max-width .45s cubic-bezier(.4,0,.2,1), opacity .3s; max-width: 400px; opacity: 1; }
+  .hidden-zone.swept { max-width: 0; opacity: 0; }
+  .ico { width: 34px; height: 44px; display: grid; place-items: center; font-size: 15px; opacity: .92; }
+  .divider { width: 18px; height: 44px; display: grid; place-items: center; }
+  .divider::after { content: ""; width: 1.5px; height: 16px; background: rgba(255,255,255,.5); border-radius: 2px; }
+  .chevron { width: 34px; height: 44px; background: none; border: 0; color: var(--bar-text); cursor: pointer; font-size: 18px; display: grid; place-items: center; border-radius: 8px; }
+  .chevron:hover { background: rgba(255,255,255,.12); }
+  .sys { display: flex; align-items: center; gap: 0; }
+  .countdown { position: absolute; left: 14px; bottom: 0; height: 3px; background: var(--mustard); width: 0; border-radius: 2px; }
+  .countdown.run { width: calc(100% - 28px); transition: width linear; }
+  .demo-hint { margin: 14px 0 0; font-size: 15px; color: var(--ink-soft); min-height: 1.5em; }
+  .demo-hint b { color: var(--mustard-deep); font-weight: 600; }
+
+  .download { display: inline-flex; align-items: center; gap: 12px; margin-top: 40px; background: var(--mustard); color: #2A2418; text-decoration: none; font-weight: 800; font-size: 19px; padding: 16px 28px; border-radius: 14px; box-shadow: 0 8px 20px rgba(224,177,58,.35); transition: transform .1s; }
+  .download:hover { transform: translateY(-1px); }
+  .download:active { transform: translateY(1px); }
+  .meta { margin-top: 14px; font-size: 15px; color: var(--ink-soft); }
+
+  .features { padding: 72px 0 24px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 48px; }
+  @media (max-width: 560px) { .features { grid-template-columns: 1fr; } }
+  .features h3 { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+  .features p { margin: 0; color: var(--ink-soft); }
+
+  .how { padding: 48px 0; }
+  .how h2 { font-size: 28px; font-weight: 800; margin: 0 0 12px; }
+  .how ol { padding-left: 22px; color: var(--ink-soft); max-width: 62ch; }
+  .how li { margin-bottom: 10px; }
+  .how li b { color: var(--ink); font-weight: 600; }
+  .how p { max-width: 62ch; color: var(--ink-soft); }
+
+  footer { padding: 48px 0 56px; color: var(--ink-soft); font-size: 15px; display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
+  footer a { color: inherit; }
+  @media (max-width: 640px) {
+    .bar { padding: 0 8px; font-size: 13px; }
+    .bar .left { gap: 10px; }
+    .bar .left span:not(.apple) { display: none; }
+    .ico { width: 24px; font-size: 12px; }
+    .hidden-zone { max-width: 170px; }
+    .sys .ico:last-child { display: none; }
+    .divider { width: 12px; }
+    .chevron { width: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hidden-zone, .download, .countdown.run { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="#"><img src="icon.png" alt="">Dustpan</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="https://github.com/amcode/Dustpan">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Sweep the clutter out of your menu bar.</h1>
+    <p class="lead">A tiny, free Mac utility. Drag the icons you don't need behind a divider, click once, and they're gone until you want them. No permissions, nothing clever.</p>
+
+    <div class="bar" role="group" aria-label="Menu bar demo">
+      <div class="left"><span class="apple" aria-hidden="true">●</span><b>Finder</b><span>File</span><span>Edit</span><span>View</span></div>
+      <div class="right">
+        <div class="hidden-zone" id="zone" aria-label="Hidden icons">
+          <span class="ico" title="Dropbox">📦</span><span class="ico" title="VPN">🔒</span><span class="ico" title="Password manager">🔑</span>
+          <span class="ico" title="Clipboard">📋</span><span class="ico" title="Updates">⬆︎</span><span class="ico" title="Spotify">🎵</span>
+          <span class="ico" title="Zoom">📹</span>
+        </div>
+        <span class="divider" title="Dustpan divider"></span>
+        <button class="chevron" id="chev" aria-label="Show or sweep hidden icons" title="Dustpan">‹</button>
+        <div class="sys"><span class="ico">📶</span><span class="ico">🔋</span><span class="ico" style="width:auto;padding:0 6px;font-size:13px">17:09</span></div>
+      </div>
+      <div class="countdown" id="cd"></div>
+    </div>
+    <p class="demo-hint" id="hint">Seven icons are swept away. <b>Click the chevron.</b></p>
+
+    <a class="download" id="download" href="https://github.com/amcode/Dustpan/releases/latest">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Download for Mac
+    </a>
+    <div class="meta" id="meta">macOS 13 or later · free and open source · no permissions needed</div>
+  </section>
+
+  <section class="features">
+    <div>
+      <h3>One click to show, one to sweep</h3>
+      <p>Everything you hid comes back with a click on the chevron, and goes away again on the next.</p>
+    </div>
+    <div>
+      <h3>Sweeps itself</h3>
+      <p>Showed the icons to check something? They tidy themselves away after 10 seconds. Change it, or turn it off.</p>
+    </div>
+    <div>
+      <h3>You decide what hides</h3>
+      <p>Hold <kbd>⌘</kbd> and drag an icon to the left of the divider. That's the whole setup. Drag it back to unhide.</p>
+    </div>
+    <div>
+      <h3>Shortcut, if you like</h3>
+      <p><kbd>⌃ ⌥ H</kbd> toggles from the keyboard. Pick another, or switch it off.</p>
+    </div>
+  </section>
+
+  <section class="how" id="how">
+    <h2>How it works</h2>
+    <ol>
+      <li><b>Install.</b> Open the download, drag Dustpan to Applications, open it. A thin divider and a chevron appear in your menu bar.</li>
+      <li><b>Hold ⌘ and drag</b> the icons you don't need to the left of the divider. macOS lets you reorder any menu bar icon this way.</li>
+      <li><b>Click the chevron.</b> The divider stretches to 10,000 points wide and shoves everything on its left off the edge of the screen. Click again and it shrinks back.</li>
+    </ol>
+    <p>That really is the whole trick. The apps behind the hidden icons keep running normally, and icons to the right of the divider, including Apple's own, are never touched. Dustpan needs no Accessibility or Screen Recording permission because it never looks at anything; it only resizes its own divider. The code is open for you to check.</p>
+  </section>
+
+  <footer>
+    <span>Free, open source, MIT licensed.</span>
+    <span><a href="https://github.com/amcode/Dustpan">Source code</a> · <a href="https://github.com/amcode/Dustpan/releases">All releases</a> · <a href="https://github.com/amcode/Dustpan/issues">Report a problem</a></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var zone = document.getElementById('zone');
+  var chev = document.getElementById('chev');
+  var hint = document.getElementById('hint');
+  var cd = document.getElementById('cd');
+  var swept = false, timer = null;
+  var AUTO = 6000;
+
+  function sweep() {
+    swept = true;
+    zone.classList.add('swept');
+    chev.textContent = '‹';
+    hint.innerHTML = 'Swept away. <b>Click the chevron</b> to bring them back.';
+    cd.classList.remove('run'); cd.style.transitionDuration = '0s'; cd.style.width = '0';
+    clearTimeout(timer);
+  }
+  function show() {
+    swept = false;
+    zone.classList.remove('swept');
+    chev.textContent = '›';
+    hint.innerHTML = 'All seven are back. They’ll <b>sweep themselves away</b> in a few seconds, or click again.';
+    cd.style.transitionDuration = '0s'; cd.style.width = '0';
+    requestAnimationFrame(function () {
+      cd.style.transitionDuration = AUTO + 'ms';
+      cd.classList.add('run');
+    });
+    clearTimeout(timer);
+    timer = setTimeout(sweep, AUTO);
+  }
+  // Start swept, with the hidden zone collapsed instantly (no animation on load).
+  zone.style.transition = 'none'; zone.classList.add('swept'); swept = true;
+  requestAnimationFrame(function () { requestAnimationFrame(function () { zone.style.transition = ''; }); });
+  chev.addEventListener('click', function () { swept ? show() : sweep(); });
+})();
+
+// Download button: point at the latest .dmg if the GitHub API is reachable.
+(function () {
+  var repo = 'amcode/Dustpan';
+  var btn = document.getElementById('download');
+  var meta = document.getElementById('meta');
+  fetch('https://api.github.com/repos/' + repo + '/releases/latest')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rel) {
+      if (!rel || !rel.assets) return;
+      var dmg = rel.assets.find(function (a) { return /\.dmg$/i.test(a.name); });
+      if (dmg) btn.href = dmg.browser_download_url;
+      meta.textContent = 'Version ' + rel.tag_name.replace(/^v/, '') + ' · macOS 13 or later · free and open source · no permissions needed';
+    })
+    .catch(function () {});
+})();
+</script>
+</body>
+</html>
